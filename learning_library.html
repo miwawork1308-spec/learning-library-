@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学びの図書館</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --border-hover: rgba(0,0,0,0.22);
+    --text-primary: #1a1a1a;
+    --text-secondary: #666;
+    --text-tertiary: #999;
+    --radius-md: 8px;
+    --radius-lg: 14px;
+  }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  .page-header {
+    max-width: 720px;
+    margin: 0 auto 2rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .page-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .filter-row {
+    max-width: 720px;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .f-btn {
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    padding: 5px 13px;
+    border-radius: 20px;
+    cursor: pointer;
+    border: 0.5px solid var(--border-hover);
+    background: var(--surface);
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .f-btn:hover { border-color: var(--text-primary); color: var(--text-primary); }
+  .f-btn.active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
+  .grid {
+    max-width: 720px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .card:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+  .card-top { padding: 1rem 1.1rem 0.85rem; }
+  .card-meta { font-size: 11px; color: rgba(255,255,255,0.65); margin-bottom: 5px; font-weight: 500; }
+  .card-title { font-size: 14px; font-weight: 500; color: #fff; line-height: 1.45; }
+  .card-body { padding: 0.8rem 1.1rem 1rem; }
+  .card-q { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 10px; }
+  .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .tag { font-size: 11px; padding: 3px 9px; border-radius: 20px; }
+
+  .detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .detail-overlay.open { display: flex; }
+  .detail-panel {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    max-width: 580px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .detail-header { padding: 1.4rem 1.6rem; }
+  .detail-num { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.65); letter-spacing: 0.08em; margin-bottom: 6px; }
+  .detail-title { font-size: 20px; font-weight: 500; color: #fff; line-height: 1.4; }
+  .detail-sec { padding: 1rem 1.6rem; border-bottom: 0.5px solid var(--border); }
+  .detail-sec.last { border-bottom: none; background: #f7f6f3; }
+  .sec-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 7px; }
+  .sec-body { font-size: 15px; color: var(--text-primary); line-height: 1.8; }
+  .sec-q { font-size: 16px; font-weight: 500; color: var(--text-primary); line-height: 1.6; }
+  .close-btn {
+    position: absolute;
+    top: 12px; right: 14px;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .close-btn:hover { background: rgba(255,255,255,0.35); }
+  .empty { text-align: center; color: var(--text-secondary); font-size: 14px; padding: 3rem 0; grid-column: 1/-1; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1 class="page-title">📚 学びの図書館</h1>
+  <span class="page-count" id="count-label"></span>
+</div>
+
+<div class="filter-row" id="filter-row"></div>
+<div class="grid" id="grid"></div>
+
+<div class="detail-overlay" id="overlay" onclick="closeDetail(event)">
+  <div class="detail-panel" id="detail-panel"></div>
+</div>
+
+<script>
+const CARDS = [
+  {
+    id:1, date:"2026-05-09", source:"TCL 1日目",
+    color:"#E8413A",
+    title:"なぜ「届けたい相手」がいると、創造的でいられるのか？",
+    learning:"創造的でいられるのは、届けたい相手がいたりフィードバックをくれる人がいるから。身体感覚で感じたものを絵や写真で切り取り、言語化していくことで少しずつ焦点が定まっていく。世界からいろんなものをもらっていると感じる瞬間に、美を感じる。",
+    core:"創造性は孤独な才能ではなく、関係性と感受性の中から生まれる。「誰かに届けたい」という気持ちが、アイデアを形にする燃料になる。",
+    question:"あなたが今、一番届けたいと思っている相手は誰ですか？",
+    tags:["創造性","関係性","身体感覚"]
+  },
+  {
+    id:2, date:"2026-05-09", source:"TCL 1日目",
+    color:"#4DC9C9",
+    title:"「もやもやで遊ぶ」ことと「批判的に考える」ことはなぜ両立するのか？",
+    learning:"まずもやもやを持ちながら模索して「遊ぶ」。コンセプトが絞れてきてはじめてクリティカルシンキングを使う。書きながら主題が決まってくるように、思考は探索→収束の往復で深まる。",
+    core:"答えを急がず、不確かさの中で遊ぶ時間が、深い思考の土台になる。収束のツールは、発散が十分に起きてからはじめて機能する。",
+    question:"今あなたが「早く答えを出そう」としていることの中に、まだ遊び足りていないものはありますか？",
+    tags:["思考プロセス","探究","言語化"]
+  },
+  {
+    id:3, date:"2026-05-09", source:"TCL 1日目",
+    color:"#F07B3A",
+    title:"ビジョンを「世に向ける」とはどういうことか？",
+    learning:"ビジョンを具体化するだけでなく、世に向きながら具体化することが大切。自分たちがこれをやりたいという前提があるからこそ、デザイン思考が有効に機能する。ビジョン思考を実現するには「Space」が必要で、内面の真善美をチームの土台にすることが鍵になる。",
+    core:"ビジョンは内側で完結させるものではなく、誰かに見せ、世界との対話の中で育てるもの。Spaceを持てるかどうかが、ビジョンが生きるかどうかを決める。",
+    question:"あなたのビジョンを「世に向ける」ために、今まだやっていないことは何ですか？",
+    tags:["ビジョン思考","内省","越境"]
+  },
+  {
+    id:4, date:"2026-05-09", source:"TCL 1日目",
+    color:"#A78BCC",
+    title:"理想と現実の「ズレ」はなぜエネルギーになるのか？",
+    learning:"Creative Tensionとは、今いる現実と理想の差異を感じることで生まれる緊張のこと。StructuredとChaoticの間にある「Structured Chaos」の領域でもっとも創造性が高まる。",
+    core:"不快なズレを避けるのではなく、意識的に保つことで創造的なエネルギーが生まれる。自分にとって適切なTensionの場所を知ることが、持続的な創造の鍵になる。",
+    question:"今あなたが感じている「理想と現実のズレ」の中で、エネルギーに変えられそうなものはどれですか？",
+    tags:["Creative Tension","創造性","ビジョン思考"]
+  },
+  {
+    id:5, date:"2026-05-09", source:"TCL 1日目",
+    color:"#1A1A1A",
+    title:"ファシリテーターではなく「Generator」になるとはどういうことか？",
+    learning:"コミュニケーションは知覚・思考・感情を共有すること。場を整えるファシリテーターだけでなく、自らも熱源となるGeneratorであることが求められる。体感からインスピレーションを得て、表現し、また体感へ戻る循環の中で自己創性が育まれる。",
+    core:"場を「管理する人」ではなく、場に「熱を生む人」になること。自分自身が動かされ、表現し続けることが、他者の創造性に火をつける。",
+    question:"あなたが最後に「自分が熱源だった」と感じた瞬間はいつですか？",
+    tags:["コミュニティ","対話","内省"]
+  }
+];
+
+const TAG_COLORS = [
+  {bg:"#FDE8E8",c:"#A32D2D"},{bg:"#E1F5EE",c:"#0F6E56"},
+  {bg:"#EEEDFE",c:"#3C3489"},{bg:"#FAEEDA",c:"#633806"},
+  {bg:"#E6F1FB",c:"#0C447C"},{bg:"#EAF3DE",c:"#27500A"}
+];
+const tagColorMap = {};
+let tagColorIdx = 0;
+function tagColor(t) {
+  if (!tagColorMap[t]) { tagColorMap[t] = TAG_COLORS[tagColorIdx % TAG_COLORS.length]; tagColorIdx++; }
+  return tagColorMap[t];
+}
+
+let activeTag = null;
+
+function allTags() {
+  const s = new Set();
+  CARDS.forEach(c => c.tags.forEach(t => s.add(t)));
+  return [...s];
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function render() {
+  const filtered = activeTag ? CARDS.filter(c => c.tags.includes(activeTag)) : CARDS;
+  document.getElementById('count-label').textContent = filtered.length + '枚';
+
+  const fr = document.getElementById('filter-row');
+  fr.innerHTML = '';
+  const all = document.createElement('button');
+  all.className = 'f-btn' + (activeTag === null ? ' active' : '');
+  all.textContent = 'すべて';
+  all.onclick = () => { activeTag = null; render(); };
+  fr.appendChild(all);
+  allTags().forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'f-btn' + (activeTag === t ? ' active' : '');
+    b.textContent = t;
+    b.onclick = () => { activeTag = t; render(); };
+    fr.appendChild(b);
+  });
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty">カードが見つかりません</div>';
+    return;
+  }
+  filtered.forEach(card => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-top" style="background:${card.color}">
+        <p class="card-meta">${esc(card.source)} · ${esc(card.date)}</p>
+        <p class="card-title">${esc(card.title)}</p>
+      </div>
+      <div class="card-body">
+        <p class="card-q">${esc(card.question)}</p>
+        <div class="tags">${card.tags.map(t => { const c = tagColor(t); return `<span class="tag" style="background:${c.bg};color:${c.c};">${esc(t)}</span>`; }).join('')}</div>
+      </div>
+    `;
+    div.onclick = () => openDetail(card);
+    grid.appendChild(div);
+  });
+}
+
+function openDetail(card) {
+  const panel = document.getElementById('detail-panel');
+  panel.innerHTML = `
+    <div class="detail-header" style="background:${card.color}">
+      <button class="close-btn" onclick="closeDetail()" aria-label="閉じる">✕</button>
+      <p class="detail-num">${esc(card.source)} · ${esc(card.date)}</p>
+      <p class="detail-title">${esc(card.title)}</p>
+    </div>
+    <div class="detail-sec">
+      <p class="sec-label">学び</p>
+      <p class="sec-body">${esc(card.learning)}</p>
+    </div>
+    <div class="detail-sec">
+      <p class="sec-label">学びの核心</p>
+      <p class="sec-body">${esc(card.core)}</p>
+    </div>
+    <div class="detail-sec last">
+      <p class="sec-label">持ち帰れる問い</p>
+      <p class="sec-q">${esc(card.question)}</p>
+      <div class="tags" style="margin-top:12px;">${card.tags.map(t => { const c = tagColor(t); return `<span class="tag" style="background:${c.bg};color:${c.c};">${esc(t)}</span>`; }).join('')}</div>
+    </div>
+  `;
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail(e) {
+  if (e && e.target !== document.getElementById('overlay')) return;
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.getElementById('overlay').classList.remove('open'); document.body.style.overflow = ''; } });
+
+render();
+</script>
+</body>
+</html>
